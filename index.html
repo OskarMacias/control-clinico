@@ -31,7 +31,7 @@
         header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 16px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
         .profile { display: flex; align-items: center; gap: 12px; }
         .avatar { background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .welcome-text h1 { font-size: 1.25rem; font-weight: 700; }
+        .welcome-text h1 { font-size: 1.25rem; font-weight: 700; cursor: pointer; }
         
         .sync-badge { background: rgba(255, 255, 255, 0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; gap: 4px; }
 
@@ -68,6 +68,8 @@
         .badge-pending { background-color: #fef9c3; color: #713f12; border: 1px solid #fef08a; }
         .badge-paid { background-color: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; }
 
+        /* SECCIONES OCULTAS DE ADMIN POR DEFECTO */
+        .admin-only-btn { display: none !important; }
         .btn-toggle-pay { background: #f1f5f9; border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 4px; }
         .btn-delete-turn { background: #fee2e2; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; color: var(--danger); cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
@@ -134,7 +136,8 @@
         <header>
             <div class="profile">
                 <div class="avatar"><i data-lucide="heart-pulse" style="width:24px; height:24px;"></i></div>
-                <div class="welcome-text"><h1>Damaris Vega</h1></div>
+                <!-- CLIC DISCRETO AQUÍ PARA MODO ADMINISTRADOR -->
+                <div class="welcome-text"><h1 onclick="activarModoAdministrador()">Damaris Vega</h1></div>
             </div>
             <div class="sync-badge"><i data-lucide="cloud" style="width:12px; height:12px;"></i> Nube Activa</div>
         </header>
@@ -145,6 +148,7 @@
         </div>
 
         <main>
+            <!-- SECCIÓN CHECADOR -->
             <div id="turnosTab" class="tab-content active">
                 <div id="activeShiftBanner" class="active-shift-banner">
                     <i data-lucide="activity"></i>
@@ -156,6 +160,7 @@
                     <div class="stat-card success"><span class="stat-label">Sueldo Pendiente</span><span id="pendingSalary" class="stat-value">$0.00</span></div>
                 </div>
 
+                <!-- SEGUIMIENTO DE SIGNOS EN VIVO -->
                 <div id="liveVitalsContainer" class="live-vitals-box">
                     <div class="live-vitals-title">
                         <i data-lucide="heart-pulse" style="color:var(--primary);"></i>
@@ -185,10 +190,12 @@
                 <div id="historyList"></div>
             </div>
 
+            <!-- SECCIÓN HISTORIAL CLÍNICO -->
             <div id="pacientesTab" class="tab-content">
                 <div class="section-title">
                     <span>Expedientes Clínicos</span>
-                    <button onclick="openPacienteModal()" style="background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer;">+ Nuevo Paciente</button>
+                    <!-- BOTÓN AGREGAR PACIENTE OCULTO POR DEFECTO -->
+                    <button id="btnNuevoPacienteAdmin" class="admin-only-btn" onclick="openPacienteModal()" style="background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer;">+ Nuevo Paciente</button>
                 </div>
                 <div id="pacientesList"></div>
             </div>
@@ -201,6 +208,7 @@
         </div>
     </div>
 
+    <!-- LIGHTBOX -->
     <div id="imageLightbox" class="lightbox">
         <img id="lightboxImg" src="" alt="Bitácora Ampliada">
         <div class="lightbox-actions">
@@ -213,6 +221,7 @@
         </div>
     </div>
 
+    <!-- MODAL ENTRADA -->
     <div id="entradaModal" class="modal">
         <div class="modal-content">
             <h2>Iniciar Guardia</h2>
@@ -238,6 +247,7 @@
         </div>
     </div>
 
+    <!-- MODAL SALIDA -->
     <div id="salidaModal" class="modal">
         <div class="modal-content">
             <h2>Cerrar Turno</h2>
@@ -269,6 +279,7 @@
         </div>
     </div>
 
+    <!-- MODAL EXPEDIENTE PACIENTE -->
     <div id="pacienteModal" class="modal">
         <div class="modal-content">
             <h2 id="pacienteModalTitle">Registrar Paciente</h2>
@@ -302,8 +313,39 @@
         let shiftActivo = null;
         let filtroActual = 'todos'; 
 
-        localStorage.removeItem('supervisor_activo');
-        localStorage.removeItem('is_admin_session');
+        // RASTREO DE ROL ADMINISTRADOR
+        let modoAdminActivo = localStorage.getItem('supervisor_admin') === 'true';
+
+        function activarModoAdministrador() {
+            if (modoAdminActivo) {
+                if(confirm("¿Desactivar el modo administrador en este teléfono?")) {
+                    localStorage.setItem('supervisor_admin', 'false');
+                    modoAdminActivo = false;
+                    refrescarEstilosAdmin();
+                    renderData();
+                }
+            } else {
+                const pass = prompt("Introduce la clave de administrador:");
+                if(pass === "1234") {
+                    localStorage.setItem('supervisor_admin', 'true');
+                    modoAdminActivo = true;
+                    alert("✓ Modo Administrador Activado. Ahora puedes editar y modificar registros.");
+                    refrescarEstilosAdmin();
+                    renderData();
+                } else if(pass !== null) {
+                    alert("Clave incorrecta.");
+                }
+            }
+        }
+
+        function refrescarEstilosAdmin() {
+            const btnNuevoPac = document.getElementById('btnNuevoPacienteAdmin');
+            if(modoAdminActivo) {
+                if(btnNuevoPac) btnNuevoPac.style.setProperty('display', 'block', 'important');
+            } else {
+                if(btnNuevoPac) btnNuevoPac.style.setProperty('display', 'none', 'important');
+            }
+        }
 
         db.collection("pacientes").onSnapshot((snapshot) => {
             pacientes = [];
@@ -311,6 +353,7 @@
             if(pacientes.length === 0) {
                 db.collection("pacientes").add({ id: 111222333, nombre: "Luis Limón", info: "Villa Juárez, Sinaloa", notas: "Ninguno", peso: "75", estatura: "1.70", frecCardiaca: "76", presion: "120/75", temp: "36.4", satO2: "97", glucosa: "100" });
             }
+            refrescarEstilosAdmin();
             renderData();
         });
 
@@ -378,7 +421,7 @@
                         db.collection("pacientes").doc(pTarget.id_db).update(updatePayload);
                     }
                 }
-                alert("✓ Signos guardados correctamente y actualizados en el historial.");
+                alert("✓ Signos guardados correctamente.");
             });
         }
 
@@ -559,12 +602,14 @@
         }
 
         function eliminarTurno(id_db) {
+            if (!modoAdminActivo) return;
             if (confirm("⚠️ ¿Estás seguro de que quieres eliminar este registro? Esta acción borrará permanentemente los datos e imágenes de este turno.")) {
                 db.collection("turnos").doc(id_db).delete();
             }
         }
 
         function openPacienteModal(id = null) { 
+            if (id && !modoAdminActivo) return; // Bloquear si no es admin
             document.getElementById('pacienteForm').reset(); 
             if(id) {
                 const p = pacientes.find(x => x.id == id);
@@ -586,6 +631,7 @@
         }
         
         function toggleEstatus(id_db, estatusActual) { 
+            if (!modoAdminActivo) return;
             const nuevoEst = estatusActual === 'Pendiente' ? 'Pagado' : 'Pendiente';
             db.collection("turnos").doc(id_db).update({ estatus: nuevoEst });
         }
@@ -641,6 +687,22 @@
                     imagenesHTML += `</div>`;
                 }
 
+                // MOSTRAR CONTROLES DE PAGO Y BORRADO SOLO SI ES ADMIN
+                let controlesAdminHTML = '';
+                if(modoAdminActivo) {
+                    controlesAdminHTML = `
+                        <div class="card-action-area">
+                            <span class="turn-badge ${t.estatus==='Pendiente'?'badge-pending':'badge-paid'}">${t.estatus}</span>
+                            <button class="btn-toggle-pay" onclick="toggleEstatus('${t.id_db}', '${t.estatus}')"><i data-lucide="check-circle" style="width:12px; height:12px;"></i> ${t.estatus === 'Pendiente' ? 'Marcar Pagado' : 'A Pendiente'}</button>
+                            <button class="btn-delete-turn" onclick="eliminarTurno('${t.id_db}')"><i data-lucide="trash-2" style="width:12px; height:12px;"></i> Eliminar</button>
+                        </div>`;
+                } else {
+                    controlesAdminHTML = `
+                        <div class="card-action-area">
+                            <span class="turn-badge ${t.estatus==='Pendiente'?'badge-pending':'badge-paid'}">${t.estatus}</span>
+                        </div>`;
+                }
+
                 hList.innerHTML += `
                     <div class="card-item">
                         <div class="card-header-flex">
@@ -650,11 +712,7 @@
                                 <p style="font-size:0.7rem; color:var(--text-light);">${t.entradaTxt} a ${t.salidaTxt.split(' ')[1]}</p>
                                 ${imagenesHTML}
                             </div>
-                            <div class="card-action-area">
-                                <span class="turn-badge ${t.estatus==='Pendiente'?'badge-pending':'badge-paid'}">${t.estatus}</span>
-                                <button class="btn-toggle-pay" onclick="toggleEstatus('${t.id_db}', '${t.estatus}')"><i data-lucide="check-circle" style="width:12px; height:12px;"></i> ${t.estatus === 'Pendiente' ? 'Marcar Pagado' : 'A Pendiente'}</button>
-                                <button class="btn-delete-turn" onclick="eliminarTurno('${t.id_db}')"><i data-lucide="trash-2" style="width:12px; height:12px;"></i> Eliminar</button>
-                            </div>
+                            ${controlesAdminHTML}
                         </div>
                     </div>`;
             });
@@ -716,9 +774,15 @@
                         </div>`;
                 });
 
+                // VISIBILIDAD DISCRETIZADA DEL BOTÓN EDITAR PERFIL
+                let btnEditarPerfilHTML = '';
+                if(modoAdminActivo) {
+                    btnEditarPerfilHTML = `<button class="btn-edit-inline" onclick="openPacienteModal(${p.id})"><i data-lucide="edit-2" style="width:12px; height:12px;"></i> Editar Perfil</button>`;
+                }
+
                 pList.innerHTML += `
                     <div class="card-item">
-                        <div class="patient-title-area"><span class="patient-name"><i data-lucide="user" style="color:var(--primary); width:18px; height:18px;"></i> ${p.nombre}</span><button class="btn-edit-inline" onclick="openPacienteModal(${p.id})"><i data-lucide="edit-2" style="width:12px; height:12px;"></i> Editar Perfil</button></div>
+                        <div class="patient-title-area"><span class="patient-name"><i data-lucide="user" style="color:var(--primary); width:18px; height:18px;"></i> ${p.nombre}</span>${btnEditarPerfilHTML}</div>
                         <div class="patient-meta-row"><b>Ubicación:</b> ${p.info}</div>
                         <div class="base-diagnosis-box"><b>Diagnóstico Base:</b> ${p.notas}</div>
                         
