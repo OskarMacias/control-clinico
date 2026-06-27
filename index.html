@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control Clínico Permanente - Damaris Vega</title>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    
+    <!-- Carga de librerías oficiales de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #0d9488;
+            --primary-dark: #115e59;
+            --primary-light: #ccfbf1;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+        body { background-color: var(--background); color: var(--text); display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
+        .phone-container { width: 100%; max-width: 480px; background: var(--surface); height: 100%; display: flex; flex-direction: column; position: relative; }
+        header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 16px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+        .profile { display: flex; align-items: center; gap: 12px; }
+        .avatar { background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .welcome-text h1 { font-size: 1.25rem; font-weight: 700; }
+        
+        .sync-badge { background: rgba(255, 255, 255, 0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+
+        .tabs { display: flex; background: var(--primary-dark); flex-shrink: 0; }
+        .tab-btn { flex: 1; color: white; background: none; border: none; padding: 12px; font-weight: 600; font-size: 0.9rem; cursor: pointer; opacity: 0.6; text-align: center; }
+        .tab-btn.active { opacity: 1; border-bottom: 3px solid white; }
+
+        main { flex: 1; padding: 16px; overflow-y: auto; background-color: var(--background); -webkit-overflow-scrolling: touch; }
+        .tab-content { display: none; padding-bottom: 80px; }
+        .tab-content.active { display: block; }
+
+        .active-shift-banner { display: none; background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 10px; border-radius: 12px; margin-bottom: 6px; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 500; }
+        
+        .live-vitals-box { display: none; background: #f0fdfa; border: 1px solid #99f6e4; padding: 14px; border-radius: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgb(13 148 136 / 0.05); }
+        .live-vitals-title { font-size: 0.85rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .stat-card { background: var(--surface); padding: 12px; border-radius: 14px; box-shadow: 0 2px 4px rgb(0 0 0 / 0.05); border: 1px solid var(--border); }
+        .stat-card.alert { border-left: 4px solid var(--warning); }
+        .stat-card.success { border-left: 4px solid var(--success); }
+        .stat-label { font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 600; }
+        .stat-value { font-size: 1.2rem; font-weight: 700; }
+
+        .filter-container { display: flex; gap: 6px; margin-bottom: 14px; }
+        .filter-btn { flex: 1; background: #e2e8f0; border: none; padding: 8px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--text-light); cursor: pointer; text-align: center; }
+        .filter-btn.active { background: var(--primary); color: white; }
+
+        .section-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .card-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgb(0 0 0 / 0.03); }
+        .card-header-flex { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .card-action-area { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        
+        .turn-badge { font-size: 0.65rem; padding: 4px 8px; border-radius: 20px; font-weight: 700; text-transform: uppercase; }
+        .badge-pending { background-color: #fef9c3; color: #713f12; border: 1px solid #fef08a; }
+        .badge-paid { background-color: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; }
+
+        .btn-toggle-pay { background: #f1f5f9; border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        .btn-delete-turn { background: #fee2e2; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; color: var(--danger); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+        .patient-title-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .patient-name { font-size: 1.15rem; color: var(--primary-dark); font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .patient-meta-row { font-size: 0.85rem; color: var(--text-light); margin-bottom: 10px; }
+        .base-diagnosis-box { background-color: #f1f5f9; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; color: var(--text); margin-bottom: 12px; }
+
+        .vitals-reference-box { background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 10px; }
+        .vitals-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 10px; }
+        .vitals-row.last-row { margin-bottom: 0; padding-top: 10px; border-top: 1px dashed var(--border); }
+        .vital-cell { display: flex; flex-direction: column; gap: 2px; }
+        .vital-cell .label { font-size: 0.75rem; color: var(--text-light); }
+        .vital-cell .value { font-size: 0.9rem; font-weight: 700; color: var(--primary-dark); }
+
+        .timeline-entry { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-top: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); }
+        .entry-header { font-weight: 700; font-size: 0.8rem; color: var(--primary-dark); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+
+        .img-thumbnail-container { margin-top: 8px; width: 75px; height: 75px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); cursor: zoom-in; }
+        .img-thumbnail-container img { width: 100%; height: 100%; object-fit: cover; }
+
+        .health-alert-box { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px; border-radius: 6px; margin-top: 8px; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+
+        .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 600; justify-content: center; align-items: center; cursor: zoom-out; }
+        .lightbox img { max-width: 95%; max-height: 90%; object-fit: contain; }
+
+        .bottom-bar { position: absolute; bottom: 0; left: 0; width: 100%; padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--border); z-index: 90; }
+        .fab-action { width: 100%; color: white; border: none; padding: 14px; border-radius: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1rem; font-weight: 700; }
+        .fab-check-in { background: var(--primary); box-shadow: 0 4px 10px rgb(13 148 136 / 0.2); }
+        .fab-check-out { background: var(--danger); box-shadow: 0 4px 10px rgb(220 38 38 / 0.2); }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: flex-end; z-index: 100; }
+        .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 20px; max-height: 85vh; overflow-y: auto; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-light); }
+        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; outline: none; }
+        
+        .grid-3-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .photo-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+        .btn-photo-mode { background: #f1f5f9; border: 1px solid var(--border); padding: 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+
+        .input-with-action { display: flex; gap: 8px; align-items: center; }
+        .action-inline-btn { background: var(--primary-light); color: var(--primary-dark); border: 1px solid var(--primary); padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .action-inline-btn.listening { background: var(--danger); color: white; border-color: var(--danger); animation: pulseBg 1.5s infinite; }
+        .btn-edit-inline { background: none; border: none; color: var(--text-light); font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+        @keyframes pulseBg { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 8px; }
+        .btn-save { background: var(--success); color: white; }
+        .btn-cancel { background: #e2e8f0; color: var(--text); margin-top: 4px; }
+        .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        <header>
+            <div class="profile">
+                <div class="avatar"><i data-lucide="heart-pulse" style="width:24px; height:24px;"></i></div>
+                <div class="welcome-text"><h1>Damaris Vega</h1></div>
+            </div>
+            <div class="sync-badge"><i data-lucide="cloud" style="width:12px; height:12px;"></i> Nube Activa</div>
+        </header>
+
+        <div class="tabs">
+            <button id="tab1" class="tab-btn active" onclick="switchTab('turnosTab', this)">🕒 Checador y Pagos</button>
+            <button id="tab2" class="tab-btn" onclick="switchTab('pacientesTab', this)">📋 Historial Clínico</button>
+        </div>
+
+        <main>
+            <!-- SECCIÓN CHECADOR -->
+            <div id="turnosTab" class="tab-content active">
+                <div id="activeShiftBanner" class="active-shift-banner">
+                    <i data-lucide="activity"></i>
+                    <span>Atendiendo a: <b id="activePatientName">--</b> desde las <b id="activeStartTime">--</b></span>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card alert"><span class="stat-label">Días Pendientes</span><span id="pendingDays" class="stat-value">0</span></div>
+                    <div class="stat-card success"><span class="stat-label">Sueldo Pendiente</span><span id="pendingSalary" class="stat-value">$0.00</span></div>
+                </div>
+
+                <!-- SEGUIMIENTO DE SIGNOS EN VIVO -->
+                <div id="liveVitalsContainer" class="live-vitals-box">
+                    <div class="live-vitals-title">
+                        <i data-lucide="heart-pulse" style="color:var(--primary);"></i>
+                        <span>Seguimiento de Signos Vitales (Durante el Día)</span>
+                    </div>
+                    <div class="grid-3-col" style="margin-bottom: 8px;">
+                        <div class="form-group"><label style="font-size:0.7rem;">P. Arterial</label><input type="text" id="livePresion" class="form-control" placeholder="120/80" style="padding:6px; font-size:0.85rem;"></div>
+                        <div class="form-group"><label style="font-size:0.7rem;">Temp (°C)</label><input type="number" step="0.1" id="liveTemp" class="form-control" placeholder="36.5" style="padding:6px; font-size:0.85rem;"></div>
+                        <div class="form-group"><label style="font-size:0.7rem;">R. Cardíaco</label><input type="number" id="liveFrec" class="form-control" placeholder="72" style="padding:6px; font-size:0.85rem;"></div>
+                    </div>
+                    <div class="grid-3-col" style="margin-bottom: 10px;">
+                        <div class="form-group"><label style="font-size:0.7rem;">Sat. O2 (%)</label><input type="number" id="liveSat" class="form-control" placeholder="98" style="padding:6px; font-size:0.85rem;"></div>
+                        <div class="form-group"><label style="font-size:0.7rem;">Glucosa</label><input type="number" id="liveGlucosa" class="form-control" placeholder="95" style="padding:6px; font-size:0.85rem;"></div>
+                        <div class="form-group"><label style="font-size:0.7rem;">Peso (kg)</label><input type="number" id="livePeso" class="form-control" placeholder="70" style="padding:6px; font-size:0.85rem;"></div>
+                    </div>
+                    <button type="button" class="btn-submit btn-save" onclick="guardarSignosLive()" style="padding:8px; font-size:0.85rem; margin:0;">💾 Actualizar Signos</button>
+                </div>
+
+                <div class="section-title"><span>Control de Días Trabajados</span><span id="totalHours" style="font-size:0.8rem; font-weight:normal; color:var(--text-light);">0 hrs</span></div>
+                
+                <div class="filter-container">
+                    <button id="filterAllBtn" class="filter-btn active" onclick="setFiltro('todos')">Todos los Días</button>
+                    <button id="filterPendingBtn" class="filter-btn" onclick="setFiltro('pendientes')">Días Pendientes</button>
+                    <button id="filterPaidBtn" class="filter-btn" onclick="setFiltro('pagados')">Días Pagados</button>
+                </div>
+
+                <div id="historyList"></div>
+            </div>
+
+            <!-- SECCIÓN HISTORIAL CLÍNICO -->
+            <div id="pacientesTab" class="tab-content">
+                <div class="section-title">
+                    <span>Expedientes Clínicos</span>
+                    <button onclick="openPacienteModal()" style="background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer;">+ Nuevo Paciente</button>
+                </div>
+                <div id="pacientesList"></div>
+            </div>
+        </main>
+
+        <div class="bottom-bar">
+            <button id="mainActionButton" class="fab-action fab-check-in" onclick="handleShiftAction()">
+                <i id="mainActionIcon" data-lucide="play"></i><span id="mainActionText">Checar Entrada</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- LIGHTBOX -->
+    <div id="imageLightbox" class="lightbox" onclick="closeLightbox()">
+        <img id="lightboxImg" src="" alt="Bitácora Ampliada">
+    </div>
+
+    <!-- MODAL ENTRADA -->
+    <div id="entradaModal" class="modal">
+        <div class="modal-content">
+            <h2>Iniciar Guardia</h2>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Selecciona Paciente</label>
+                <select id="entradaPacienteSelect" class="form-control"></select>
+            </div>
+            <button type="button" class="btn-submit btn-save" onclick="confirmEntrada()">Confirmar Entrada</button>
+            <button type="button" class="btn-submit btn-cancel" onclick="closeAllModales()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL SALIDA -->
+    <div id="salidaModal" class="modal">
+        <div class="modal-content">
+            <h2>Cerrar Turno</h2>
+            <form onsubmit="confirmSalida(event)">
+                <div class="form-group">
+                    <label>Pago por Hora ($ MXN)</label>
+                    <input type="number" id="formPagoHora" class="form-control" value="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Reporte Clínico de Evolución</label>
+                    <div class="input-with-action">
+                        <textarea id="formReporte" class="form-control" rows="4" placeholder="Dicta u observaciones sobre el estado físico del paciente..." required></textarea>
+                        <button type="button" class="action-inline-btn" onclick="toggleDictado('formReporte', this)"><i data-lucide="mic"></i></button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Fotografía de Bitácora (Opcional)</label>
+                    <div class="photo-options">
+                        <button type="button" class="btn-photo-mode" onclick="triggerPhotoCapture('camera')"><i data-lucide="camera"></i> Cámara</button>
+                        <button type="button" class="btn-photo-mode" onclick="triggerPhotoCapture('file')"><i data-lucide="image"></i> Archivo</button>
+                    </div>
+                    <input type="file" id="fileCamera" accept="image/*" capture="camera" style="display:none;">
+                    <input type="file" id="fileGallery" accept="image/*" style="display:none;">
+                    <input type="hidden" id="formFotoBase64">
+                    <div id="photoStatus" style="font-size:0.75rem; color:var(--success); margin-top:4px; font-weight:600; display:none;">✓ Lista para guardar</div>
+                </div>
+                <button type="submit" class="btn-submit btn-save">Finalizar Guardia</button>
+                <button type="button" class="btn-submit btn-cancel" onclick="closeAllModales()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EXPEDIENTE PACIENTE -->
+    <div id="pacienteModal" class="modal">
+        <div class="modal-content">
+            <h2 id="pacienteModalTitle">Registrar Paciente</h2>
+            <form id="pacienteForm" onsubmit="savePacienteData(event)">
+                <input type="hidden" id="editPacienteId">
+                <div class="form-group"><label>Nombre del Paciente</label><input type="text" id="pacNombre" class="form-control" required></div>
+                <div class="form-group"><label>Edad / Ubicación</label><input type="text" id="pacInfo" class="form-control" placeholder="Ej. Villa Juárez, Sinaloa"></div>
+                <div class="form-group"><label>Diagnóstico Inicial</label><textarea id="pacNotas" class="form-control" rows="2"></textarea></div>
+                <button type="submit" class="btn-submit btn-save">Guardar Paciente</button>
+                <button type="button" class="btn-submit btn-cancel" onclick="closePacienteModalView()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1UyDilfdt40ClMjRZo0YV_JpS_O9hZ2M",
+            authDomain: "control-clinico-damaris.firebaseapp.com",
+            projectId: "control-clinico-damaris",
+            storageBucket: "control-clinico-damaris.appspot.com",
+            messagingSenderId: "888712869896",
+            appId: "1:888712869896:web:11c9aa3da17ca9cb0f08mb",
+            measurementId: "G-BRR6WF08MB"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let pacientes = [];
+        let turnos = [];
+        let shiftActivo = null;
+        let filtroActual = 'todos'; 
+
+        // Limpieza de estados anteriores de supervisor
+        localStorage.removeItem('supervisor_activo');
+        localStorage.removeItem('is_admin_session');
+
+        db.collection("pacientes").onSnapshot((snapshot) => {
+            pacientes = [];
+            snapshot.forEach((doc) => pacientes.push({ id_db: doc.id, ...doc.data() }));
+            if(pacientes.length === 0) {
+                db.collection("pacientes").add({ id: 111222333, nombre: "Luis Quinzon", info: "Villa Juárez, Sinaloa", notas: "Ninguno", peso: "75", estatura: "1.70", frecCardiaca: "76", presion: "120/75", temp: "36.4", satO2: "97", glucosa: "100" });
+            }
+            renderData();
+        });
+
+        db.collection("turnos").onSnapshot((snapshot) => {
+            turnos = [];
+            snapshot.forEach((doc) => turnos.push({ id_db: doc.id, ...doc.data() }));
+            renderData();
+        });
+
+        db.collection("guardia_activa").doc("estado").onSnapshot((doc) => {
+            if(doc.exists && doc.data().activo) {
+                shiftActivo = doc.data();
+
+                if(shiftActivo.vitalsTemporales) {
+                    document.getElementById('livePresion').value = shiftActivo.vitalsTemporales.presion || "";
+                    document.getElementById('liveTemp').value = shiftActivo.vitalsTemporales.temp || "";
+                    document.getElementById('liveFrec').value = shiftActivo.vitalsTemporales.frec || "";
+                    document.getElementById('liveSat').value = shiftActivo.vitalsTemporales.sat || "";
+                    document.getElementById('liveGlucosa').value = shiftActivo.vitalsTemporales.glucosa || "";
+                    document.getElementById('livePeso').value = shiftActivo.vitalsTemporales.peso || "";
+                }
+            } else {
+                shiftActivo = null;
+                limpiarInputsLive();
+            }
+            updateChecadorUI();
+        });
+
+        function limpiarInputsLive() {
+            document.getElementById('livePresion').value = "";
+            document.getElementById('liveTemp').value = "";
+            document.getElementById('liveFrec').value = "";
+            document.getElementById('liveSat').value = "";
+            document.getElementById('liveGlucosa').value = "";
+            document.getElementById('livePeso').value = "";
+        }
+
+        function guardarSignosLive() {
+            if(!shiftActivo) return;
+            
+            const vitals = {
+                presion: document.getElementById('livePresion').value.trim() || "--",
+                temp: document.getElementById('liveTemp').value.trim() || "--",
+                frec: document.getElementById('liveFrec').value.trim() || "--",
+                sat: document.getElementById('liveSat').value.trim() || "--",
+                glucosa: document.getElementById('liveGlucosa').value.trim() || "--",
+                peso: document.getElementById('livePeso').value.trim() || "--",
+                incidencia: false
+            };
+
+            db.collection("guardia_activa").doc("estado").update({
+                vitalsTemporales: vitals
+            }).then(() => {
+                const pTarget = pacientes.find(p => p.id == shiftActivo.pacienteId);
+                if(pTarget) {
+                    let updatePayload = {};
+                    if(vitals.peso !== "--") updatePayload.peso = vitals.peso;
+                    if(vitals.frec !== "--") updatePayload.frecCardiaca = vitals.frec;
+                    if(vitals.presion !== "--") updatePayload.presion = vitals.presion;
+                    if(vitals.temp !== "--") updatePayload.temp = vitals.temp;
+                    if(vitals.sat !== "--") updatePayload.satO2 = vitals.sat;
+                    if(vitals.glucosa !== "--") updatePayload.glucosa = vitals.glucosa;
+
+                    if(Object.keys(updatePayload).length > 0) {
+                        db.collection("pacientes").doc(pTarget.id_db).update(updatePayload);
+                    }
+                }
+                alert("✓ Signos guardados correctamente y actualizados en el historial.");
+            });
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        if(recognition) recognition.lang = 'es-MX';
+
+        function toggleDictado(id, btn) {
+            if(!recognition) return alert("Dictado no soportado.");
+            if(btn.classList.contains('listening')) { recognition.stop(); return; }
+            btn.classList.add('listening'); btn.innerHTML = '<i data-lucide="mic-off"></i>'; lucide.createIcons();
+            recognition.start();
+            recognition.onresult = e => { document.getElementById(id).value += (document.getElementById(id).value ? " " : "") + e.results[0][0].transcript; };
+            recognition.onend = recognition.onerror = () => { btn.classList.remove('listening'); btn.innerHTML = '<i data-lucide="mic"></i>'; lucide.createIcons(); };
+        }
+
+        function triggerPhotoCapture(mode) {
+            if(mode === 'camera') document.getElementById('fileCamera').click();
+            else document.getElementById('fileGallery').click();
+        }
+
+        function processImage(file) {
+            if (!file) return;
+            const statusDiv = document.getElementById('photoStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.style.color = 'var(--text-light)';
+            statusDiv.innerText = "⏳ Optimizando imagen...";
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width; let height = img.height;
+                    const MAX_WIDTH = 1280;
+                    if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                    document.getElementById('formFotoBase64').value = compressedBase64;
+                    statusDiv.style.color = 'var(--success)';
+                    statusDiv.innerText = "✓ Lista para guardar";
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('fileCamera').addEventListener('change', e => processImage(e.target.files[0]));
+        document.getElementById('fileGallery').addEventListener('change', e => processImage(e.target.files[0]));
+
+        function openLightbox(src) { document.getElementById('lightboxImg').src = src; document.getElementById('imageLightbox').style.display = 'flex'; }
+        function closeLightbox() { document.getElementById('imageLightbox').style.display = 'none'; }
+        function switchTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); btn.classList.add('active'); }
+        function setFiltro(tipo) { filtroActual = tipo; document.getElementById('filterAllBtn').classList.toggle('active', tipo === 'todos'); document.getElementById('filterPendingBtn').classList.toggle('active', tipo === 'pendientes'); document.getElementById('filterPaidBtn').classList.toggle('active', tipo === 'pagados'); renderData(); }
+        function populateSelect() { const select = document.getElementById('entradaPacienteSelect'); select.innerHTML = ''; pacientes.forEach(p => select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`); }
+
+        function handleShiftAction() {
+            if (!shiftActivo) {
+                populateSelect();
+                document.getElementById('entradaModal').style.display = 'flex';
+            } else {
+                document.getElementById('formReporte').value = "";
+                document.getElementById('formFotoBase64').value = "";
+                document.getElementById('photoStatus').style.display = 'none';
+                document.getElementById('salidaModal').style.display = 'flex';
+            }
+        }
+
+        function confirmEntrada() {
+            const pacId = document.getElementById('entradaPacienteSelect').value;
+            const p = pacientes.find(x => x.id == pacId);
+            const nuevaGuardia = { activo: true, entrada: new Date().toISOString(), pacienteId: pacId, patientNombre: p.nombre, vitalsTemporales: null };
+            
+            db.collection("guardia_activa").doc("estado").set(nuevaGuardia);
+            closeAllModales();
+        }
+
+        function analizarSignosVitales(v) {
+            if (!v || v.incidencia) return null;
+            let alertas = [];
+            if (v.temp && v.temp !== "--" && (parseFloat(v.temp) >= 37.8)) alertas.push("Fiebre (≥37.8°C)");
+            if (v.temp && v.temp !== "--" && (parseFloat(v.temp) <= 35.5)) alertas.push("Hipotermia (≤35.5°C)");
+            if (v.frec && v.frec !== "--" && (parseInt(v.frec) > 100)) alertas.push("Taquicardia (>100 lpm)");
+            if (v.frec && v.frec !== "--" && (parseInt(v.frec) < 60)) alertas.push("Bradicardia (<60 lpm)");
+            if (v.sat && v.sat !== "--" && (parseInt(v.sat) < 92)) alertas.push("Saturación Baja (<92%)");
+            if (v.glucosa && v.glucosa !== "--" && (parseInt(v.glucosa) > 140)) alertas.push("Hiperglucemia (>140 mg/dL)");
+            if (v.glucosa && v.glucosa !== "--" && (parseInt(v.glucosa) < 70)) alertas.push("Hipoglucemia (<70 mg/dL)");
+            if(v.presion && v.presion !== "--" && v.presion.includes('/')) {
+                const [sys, dia] = v.presion.split('/').map(Number);
+                if(sys >= 140 || dia >= 90) alertas.push("Hipertensión (≥140/90)");
+                if(sys <= 90 || dia <= 60) alertas.push("Hipotensión (≤90/60)");
+            }
+            return alertas.length > 0 ? alertas.join(', ') : null;
+        }
+
+        function confirmSalida(e) {
+            e.preventDefault();
+            const vitalsFinal = shiftActivo.vitalsTemporales || { presion: "--", temp: "--", frec: "--", sat: "--", glucosa: "--", peso: "--", incidencia: false };
+
+            const ahora = new Date(); const entradaDate = new Date(shiftActivo.entrada); const pagoH = parseFloat(document.getElementById('formPagoHora').value);
+            const hrs = Math.max(0.1, (ahora - entradaDate) / (1000 * 60 * 60));
+            const entradaTxt = `${String(entradaDate.getDate()).padStart(2,'0')}/${String(entradaDate.getMonth()+1).padStart(2,'0')} ${String(entradaDate.getHours()).padStart(2,'0')}:${String(entradaDate.getMinutes()).padStart(2,'0')}`;
+
+            const alertaMedica = analizarSignosVitales(vitalsFinal);
+
+            db.collection("turnos").add({
+                id: Date.now(), pacienteId: shiftActivo.pacienteId, entradaTxt: entradaTxt,
+                salidaTxt: `${String(ahora.getDate()).padStart(2,'0')}/${String(ahora.getMonth()+1).padStart(2,'0')} ${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`,
+                horas: hrs.toFixed(1), sueldo: (hrs * pagoH).toFixed(2), estatus: 'Pendiente',
+                reporte: document.getElementById('formReporte').value, foto: document.getElementById('formFotoBase64').value,
+                vitals: vitalsFinal, alertaClinica: alertaMedica, fotoMeta: { fecha: ahora.toLocaleDateString(), hora: ahora.toLocaleTimeString(), gps: "Villa Juárez, Sinaloa" }
+            });
+
+            db.collection("guardia_activa").doc("estado").set({ activo: false });
+            closeAllModales();
+        }
+
+        function eliminarTurno(id_db) {
+            if (confirm("⚠️ ¿Estás seguro de que quieres eliminar este registro de día trabajado? Esta acción no se puede deshacer.")) {
+                db.collection("turnos").doc(id_db).delete();
+            }
+        }
+
+        function openPacienteModal(id = null) { 
+            document.getElementById('pacienteForm').reset(); 
+            if(id) {
+                const p = pacientes.find(x => x.id == id);
+                document.getElementById('editPacienteId').value = p.id_db; document.getElementById('pacNombre').value = p.nombre; document.getElementById('pacInfo').value = p.info; document.getElementById('pacNotas').value = p.notas;
+            } else { document.getElementById('editPacienteId').value = ""; }
+            document.getElementById('pacienteModal').style.display = 'flex'; 
+        }
+        function closePacienteModalView() { document.getElementById('pacienteModal').style.display = 'none'; }
+        
+        function savePacienteData(e) { 
+            e.preventDefault(); const idEdit = document.getElementById('editPacienteId').value;
+            const payload = { nombre: document.getElementById('pacNombre').value, info: document.getElementById('pacInfo').value, notas: document.getElementById('pacNotas').value };
+            if(idEdit) {
+                db.collection("pacientes").doc(idEdit).update(payload);
+            } else {
+                db.collection("pacientes").add({ ...payload, id: Date.now(), peso: "75", estatura: "1.70", frecCardiaca: "76", presion: "120/75", temp: "36.4", satO2: "97", glucosa: "100" }); 
+            }
+            closePacienteModalView(); 
+        }
+        
+        function toggleEstatus(id_db, estatusActual) { 
+            const nuevoEst = estatusActual === 'Pendiente' ? 'Pagado' : 'Pendiente';
+            db.collection("turnos").doc(id_db).update({ estatus: nuevoEst });
+        }
+        
+        function closeAllModales() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+
+        function updateChecadorUI() {
+            const banner = document.getElementById('activeShiftBanner'); const btn = document.getElementById('mainActionButton');
+            const liveVitals = document.getElementById('liveVitalsContainer');
+            
+            if(shiftActivo) {
+                document.getElementById('activePatientName').innerText = shiftActivo.patientNombre;
+                const dateE = new Date(shiftActivo.entrada);
+                document.getElementById('activeStartTime').innerText = `${String(dateE.getHours()).padStart(2,'0')}:${String(dateE.getMinutes()).padStart(2,'0')}`;
+                banner.style.display = 'flex'; 
+                liveVitals.style.display = 'block';
+                btn.className = 'fab-action fab-check-out'; document.getElementById('mainActionText').innerText = 'Checar Salida / Reporte'; document.getElementById('mainActionIcon').setAttribute('data-lucide', 'square');
+            } else {
+                banner.style.display = 'none'; 
+                liveVitals.style.display = 'none';
+                btn.className = 'fab-action fab-check-in'; document.getElementById('mainActionText').innerText = 'Checar Entrada'; document.getElementById('mainActionIcon').setAttribute('data-lucide', 'play');
+            }
+            lucide.createIcons();
+        }
+
+        function renderData() {
+            const hList = document.getElementById('historyList'); let pDays = 0, pSal = 0, tHrs = 0; hList.innerHTML = '';
+            const turnosFiltrados = turnos.filter(t => { if (filtroActual === 'pendientes') return t.estatus === 'Pendiente'; if (filtroActual === 'pagados') return t.estatus === 'Pagado'; return true; });
+            if(turnosFiltrados.length === 0) hList.innerHTML = `<div class="empty-state"><p>Ningún día registrado.</p></div>`;
+
+            turnos.forEach(t => { tHrs += parseFloat(t.horas); if(t.estatus === 'Pendiente') { pDays++; pSal += parseFloat(t.sueldo); } });
+
+            [...turnosFiltrados].sort((a,b) => b.id - a.id).forEach(t => {
+                const pac = pacientes.find(p => p.id == t.pacienteId);
+                hList.innerHTML += `
+                    <div class="card-item">
+                        <div class="card-header-flex">
+                            <div>
+                                <h4 style="font-size:0.9rem;">Día Trabajado: ${t.horas} hrs ($${t.sueldo})</h4>
+                                <p style="font-size:0.75rem; color:var(--text-light); margin-top:2px;"><b>Paciente:</b> ${pac ? pac.nombre : 'Desconocido'}</p>
+                                <p style="font-size:0.7rem; color:var(--text-light);">${t.entradaTxt} a ${t.salidaTxt.split(' ')[1]}</p>
+                            </div>
+                            <div class="card-action-area">
+                                <span class="turn-badge ${t.estatus==='Pendiente'?'badge-pending':'badge-paid'}">${t.estatus}</span>
+                                <button class="btn-toggle-pay" onclick="toggleEstatus('${t.id_db}', '${t.estatus}')"><i data-lucide="check-circle" style="width:12px; height:12px;"></i> ${t.estatus === 'Pendiente' ? 'Marcar Pagado' : 'A Pendiente'}</button>
+                                <button class="btn-delete-turn" onclick="eliminarTurno('${t.id_db}')"><i data-lucide="trash-2" style="width:12px; height:12px;"></i> Eliminar Día</button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+
+            document.getElementById('pendingDays').innerText = pDays; document.getElementById('pendingSalary').innerText = `$${pSal.toFixed(2)}`; document.getElementById('totalHours').innerText = `${tHrs.toFixed(1)} hrs`;
+            const pList = document.getElementById('pacientesList'); pList.innerHTML = '';
+            
+            pacientes.forEach(p => {
+                const notasMedicas = turnos.filter(t => t.pacienteId == p.id); let timelineHTML = '';
+                notasMedicas.sort((a,b) => b.id - a.id).forEach(n => {
+                    let vitalsHTML = '';
+                    if(n.vitals && !n.vitals.incidencia) {
+                        vitalsHTML = `
+                            <div class="vitals-reference-box">
+                                <div class="vitals-row">
+                                    <div class="vital-cell"><span class="label">Peso</span><span class="value">${n.vitals.peso} kg</span></div>
+                                    <div class="vital-cell"><span class="label">Estatura</span><span class="value">${p.estatura || '1.70'} m</span></div>
+                                    <div class="vital-cell"><span class="label">R. Cardíaco</span><span class="value">${n.vitals.frec} lpm</span></div>
+                                </div>
+                                <div class="vitals-row">
+                                    <div class="vital-cell"><span class="label">Presión A.</span><span class="value">${n.vitals.presion}</span></div>
+                                    <div class="vital-cell"><span class="label">Temperatura</span><span class="value">${n.vitals.temp} °C</span></div>
+                                    <div class="vital-cell"><span class="label">Sat. O2</span><span class="value">${n.vitals.sat}%</span></div>
+                                </div>
+                                <div class="vitals-row last-row">
+                                    <div class="vital-cell" style="grid-column: span 3;"><span class="label">Nivel de Glucosa</span><span class="value">${n.vitals.glucosa} mg/dL</span></div>
+                                </div>
+                            </div>`;
+                    }
+
+                    timelineHTML += `
+                        <div class="timeline-entry">
+                            <div class="entry-header"><i data-lucide="calendar" style="width:14px; height:14px;"></i> Reporte Diario: ${n.entradaTxt.split(' ')[0]}</div>
+                            ${vitalsHTML}
+                            ${n.alertaClinica ? `<div class="health-alert-box"><i data-lucide="alert-triangle" style="width:14px; height:14px;"></i> ⚠️ ALERTA: ${n.alertaClinica}</div>` : ''}
+                            <p style="color:var(--text); font-size:0.85rem; margin-top:8px; line-height:1.4; white-space:pre-wrap;"><b>Notas de Evolución:</b> ${n.reporte || 'Sin observaciones.'}</p>
+                            ${n.foto ? `
+                                <div class="img-thumbnail-container" onclick="openLightbox('${n.foto}')"><img src="${n.foto}"></div>
+                                <div class="meta-stamp" style="margin-top:6px; border-radius:6px;"><span>📅 <b>Captura:</b> ${n.fotoMeta.fecha} - ${n.fotoMeta.hora}</span><span>📍 <b>Ubicación:</b> ${n.fotoMeta.gps}</span></div>
+                            ` : ''}
+                        </div>`;
+                });
+
+                pList.innerHTML += `
+                    <div class="card-item">
+                        <div class="patient-title-area"><span class="patient-name"><i data-lucide="user" style="color:var(--primary); width:18px; height:18px;"></i> ${p.nombre}</span><button class="btn-edit-inline" onclick="openPacienteModal(${p.id})"><i data-lucide="edit-2" style="width:12px; height:12px;"></i> Editar Perfil</button></div>
+                        <div class="patient-meta-row"><b>Ubicación:</b> ${p.info}</div>
+                        <div class="base-diagnosis-box"><b>Diagnóstico Base:</b> ${p.notas}</div>
+                        
+                        <div class="vitals-reference-box" style="background:#f8fafc;">
+                            <div class="vitals-row">
+                                <div class="vital-cell"><span class="label">Peso</span><span class="value" style="color:var(--success);">${p.peso} kg</span></div>
+                                <div class="vital-cell"><span class="label">Estatura</span><span class="value" style="color:var(--success);">${p.estatura || '1.70'} m</span></div>
+                                <div class="vital-cell"><span class="label">R. Cardíaco</span><span class="value" style="color:var(--success);">${p.frecCardiaca} lpm</span></div>
+                            </div>
+                            <div class="vitals-row" style="margin-top:4px;">
+                                <div class="vital-cell"><span class="label">Presión A.</span><span class="value" style="color:var(--success);">${p.presion}</span></div>
+                                <div class="vital-cell"><span class="label">Temperatura</span><span class="value" style="color:var(--success);">${p.temp} °C</span></div>
+                                <div class="vital-cell"><span class="label">Sat. O2</span><span class="value" style="color:var(--success);">${p.satO2}%</span></div>
+                            </div>
+                            <div class="vitals-row last-row" style="margin-top:4px;">
+                                <div class="vital-cell" style="grid-column: span 3;"><span class="label">Nivel de Glucosa</span><span class="value" style="color:var(--success);">${p.glucosa} mg/dL</span></div>
+                            </div>
+                        </div>
+
+                        <div style="border-top:1px dashed var(--border); padding-top:10px; margin-top:14px;">
+                            <span style="font-size:0.75rem; font-weight:700; color:var(--text-light); text-transform:uppercase; display:block; margin-bottom:4px;">📌 BITÁCORA DE EVOLUCIÓN DIARIA</span>
+                            ${timelineHTML || '<p style="font-size:0.75rem; color:var(--text-light); font-style:italic; margin-top:4px;">No hay reportes clínicos asociados aún.</p>'}
+                        </div>
+                    </div>`;
+            });
+            lucide.createIcons();
+        }
+
+        updateChecadorUI();
+    </script>
+</body>
+</html>
