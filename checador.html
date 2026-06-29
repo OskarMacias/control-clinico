@@ -353,7 +353,7 @@
                             <div>
                                 <h4 style="font-size:0.95rem;">${t.horas} hrs ($${t.sueldo})</h4>
                                 <p style="font-size:0.8rem; color:var(--text-light); margin-top:2px;"><b>Paciente:</b> ${pac ? pac.nombre : 'Desconocido'}</p>
-                                <p style="font-size:0.75rem; color:var(--text-light);">${t.entradaTxt}<sup> a ${t.salidaTxt ? t.salidaTxt.split(', ')[1] : '--:--'}</sup></p>
+                                <p style="font-size:0.75rem; color:var(--text-light);">${t.entradaTxt} a ${t.salidaTxt ? t.salidaTxt.split(', ')[1] : '--:--'}</p>
                                 ${t.reporte ? `<p style="font-size:0.8rem; color:var(--text); margin-top:6px; font-style:italic; border-left:2px solid var(--primary); padding-left:6px;">${t.reporte}</p>` : ''}
                             </div>
                             <span class="turn-badge ${t.estatus==='Pendiente'?'badge-pending':'badge-paid'}" onclick="event.stopPropagation(); toggleEstatus('${t.id_db}', '${t.estatus}')" style="cursor:pointer;">${t.estatus}</span>
@@ -369,4 +369,4 @@
         function renderPacientes() {
             const list = document.getElementById('pacientesList');
             if(!list) return;
-            l
+            list.innerHT
