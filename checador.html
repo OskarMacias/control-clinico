@@ -26,7 +26,14 @@
         .stat-card { background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .stat-label { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 600; }
         .stat-value { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
-        .section-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+        
+        .section-title-flex { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: var(--text); display: flex; justify-content: space-between; align-items: center; }
+        
+        /* DISEÑO DE BOTONES DE FILTRO */
+        .filter-container { display: flex; gap: 6px; margin-bottom: 16px; }
+        .filter-btn { flex: 1; background: #e2e8f0; border: none; padding: 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; color: var(--text-light); cursor: pointer; text-align: center; }
+        .filter-btn.active { background: var(--primary); color: white; }
+
         .card-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; -webkit-user-select: none; user-select: none; }
         .card-header-flex { display: flex; justify-content: space-between; align-items: flex-start; }
         .turn-badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 20px; font-weight: 700; text-transform: uppercase; }
@@ -46,6 +53,7 @@
         .btn-save { background: var(--success); color: white; }
         .btn-danger-action { background: var(--danger); color: white; margin-top: 12px; border: 1px solid #b91c1c; }
         .btn-cancel { background: #e2e8f0; color: var(--text); margin-top: 4px; }
+        .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -69,12 +77,24 @@
                     <div class="stat-card"><span class="stat-label">Días Pendientes</span><span id="pendingDays" class="stat-value">0</span></div>
                     <div class="stat-card"><span class="stat-label">Sueldo Pendiente</span><span id="pendingSalary" class="stat-value">$0.00</span></div>
                 </div>
-                <div class="section-title">Historial de Turnos</div>
+                
+                <div class="section-title-flex">
+                    <span>Historial de Turnos</span>
+                    <span id="totalHours" style="font-size:0.85rem; font-weight:normal; color:var(--text-light);">0 hrs</span>
+                </div>
+
+                <!-- CONTENEDOR DE FILTROS NUEVO -->
+                <div class="filter-container">
+                    <button id="filterAllBtn" class="filter-btn active" onclick="setFiltro('todos')">Todos los Días</button>
+                    <button id="filterPendingBtn" class="filter-btn" onclick="setFiltro('pendientes')">Días Pendientes</button>
+                    <button id="filterPaidBtn" class="filter-btn" onclick="setFiltro('pagados')">Días Pagados</button>
+                </div>
+
                 <div id="historyList"></div>
             </div>
 
             <div id="pacientesTab" class="tab-content">
-                <div class="section-title">Expedientes</div>
+                <div class="section-title-flex"><span>Expedientes</span></div>
                 <div id="pacientesList"></div>
             </div>
         </main>
@@ -155,6 +175,7 @@
         let pacientes = [];
         let turnos = [];
         let shiftActivo = null;
+        let filtroActual = 'todos';
 
         db.collection("pacientes").onSnapshot(snapshot => {
             pacientes = [];
@@ -179,6 +200,14 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             btn.classList.add('active');
+        }
+
+        function setFiltro(tipo) {
+            filtroActual = tipo;
+            document.getElementById('filterAllBtn').classList.toggle('active', tipo === 'todos');
+            document.getElementById('filterPendingBtn').classList.toggle('active', tipo === 'pendientes');
+            document.getElementById('filterPaidBtn').classList.toggle('active', tipo === 'pagados');
+            renderTurnos();
         }
 
         function handleShiftAction() {
@@ -233,7 +262,6 @@
             db.collection("turnos").doc(id_db).update({ estatus: nuevo });
         }
 
-        // --- MÓDULO ADMINISTRADOR AVANZADO ---
         let pressTimer;
         function startPress(id_db) {
             pressTimer = window.setTimeout(function() {
@@ -278,7 +306,7 @@
             if(confirm("⚠️ ¿Estás completamente seguro de eliminar este turno? Esta acción no se puede deshacer.")) {
                 db.collection("turnos").doc(id_db).delete().then(() => {
                     closeModales();
-                    alert("🗑️ Turno eliminado permanentemente de la base de datos.");
+                    alert("🗑️ Turno eliminado permanentemente.");
                 });
             }
         }
@@ -303,10 +331,27 @@
             const list = document.getElementById('historyList');
             if(!list) return;
             list.innerHTML = '';
-            let pDays = 0, pSal = 0;
+            let pDays = 0, pSal = 0, tHrs = 0;
 
-            turnos.sort((a,b) => b.entradaTxt.localeCompare(a.entradaTxt)).forEach(t => {
+            // Calcular estadísticas globales siempre en base a todos los turnos
+            turnos.forEach(t => {
+                tHrs += parseFloat(t.horas);
                 if(t.estatus === 'Pendiente') { pDays++; pSal += parseFloat(t.sueldo); }
+            });
+
+            // Filtrar los turnos para la vista
+            const turnosFiltrados = turnos.filter(t => {
+                if (filtroActual === 'pendientes') return t.estatus === 'Pendiente';
+                if (filtroActual === 'pagados') return t.estatus === 'Pagado';
+                return true;
+            });
+
+            if(turnosFiltrados.length === 0) {
+                list.innerHTML = `<div class="empty-state"><p>Ningún día registrado bajo este filtro.</p></div>`;
+            }
+
+            // Pintar la lista filtrada ordenada de más reciente a más viejo
+            turnosFiltrados.sort((a,b) => b.entradaTxt.localeCompare(a.entradaTxt)).forEach(t => {
                 const pac = pacientes.find(p => p.id == t.pacienteId);
 
                 list.innerHTML += `
@@ -323,25 +368,4 @@
                     </div>`;
             });
 
-            if(document.getElementById('pendingDays')) document.getElementById('pendingDays').innerText = pDays;
-            if(document.getElementById('pendingSalary')) document.getElementById('pendingSalary').innerText = `$${pSal.toFixed(2)}`;
-        }
-
-        function renderPacientes() {
-            const list = document.getElementById('pacientesList');
-            if(!list) return;
-            list.innerHTML = '';
-            pacientes.forEach(p => {
-                list.innerHTML += `
-                    <div class="card-item">
-                        <h3 style="color:var(--primary-dark); font-size:1.1rem;">${p.nombre}</h3>
-                        <p style="font-size:0.85rem; color:var(--text-light); margin-top:4px;"><b>Ubicación:</b> ${p.info}</p>
-                        <p style="font-size:0.85rem; margin-top:6px; background:#f1f5f9; padding:8px; border-radius:6px;"><b>Diagnóstico:</b> ${p.notas}</p>
-                    </div>`;
-            });
-        }
-
-        lucide.createIcons();
-    </script>
-</body>
-</html>
+            if(document.getElementById('pendingDays'))
