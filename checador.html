@@ -147,6 +147,7 @@
             pacientes = [];
             snapshot.forEach(doc => pacientes.push({ id_db: doc.id, ...doc.data() }));
             renderPacientes();
+            renderTurnos();
         });
 
         db.collection("turnos").onSnapshot(snapshot => {
@@ -234,15 +235,15 @@
                 } else if(pass !== null) {
                     alert("Contraseña incorrecta.");
                 }
-            }, 1500); // 1.5 segundos sostenido
+            }, 1500);
         }
 
         function cancelPress() { clearTimeout(pressTimer); }
 
         function saveAdminCorrection() {
             const id_db = document.getElementById('editTurnoId').value;
-            const h Nuevas = parseFloat(document.getElementById('editHorasInput').value) || 0;
-            const s Nuevo = (hNuevas * 100).toFixed(2);
+            const hNuevas = parseFloat(document.getElementById('editHorasInput').value) || 0;
+            const sNuevo = (hNuevas * 100).toFixed(2);
 
             db.collection("turnos").doc(id_db).update({
                 horas: hNuevas.toFixed(1),
@@ -271,6 +272,7 @@
 
         function renderTurnos() {
             const list = document.getElementById('historyList');
+            if(!list) return;
             list.innerHTML = '';
             let pDays = 0, pSal = 0;
 
@@ -291,12 +293,13 @@
                     </div>`;
             });
 
-            document.getElementById('pendingDays').innerText = pDays;
-            document.getElementById('pendingSalary').innerText = `$${pSal.toFixed(2)}`;
+            if(document.getElementById('pendingDays')) document.getElementById('pendingDays').innerText = pDays;
+            if(document.getElementById('pendingSalary')) document.getElementById('pendingSalary').innerText = `$${pSal.toFixed(2)}`;
         }
 
         function renderPacientes() {
             const list = document.getElementById('pacientesList');
+            if(!list) return;
             list.innerHTML = '';
             pacientes.forEach(p => {
                 list.innerHTML += `
