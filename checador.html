@@ -138,12 +138,12 @@
             
             <div class="form-group" style="margin-top: 12px;">
                 <label>Fecha y Hora de Entrada</label>
-                <input type="text" id="editEntradaTxt" class="form-control" placeholder="Ej: 26/06/2026, 14:26:00" required>
+                <input type="text" id="editEntradaTxt" class="form-control" required>
             </div>
 
             <div class="form-group">
                 <label>Fecha y Hora de Salida</label>
-                <input type="text" id="editSalidaTxt" class="form-control" placeholder="Ej: 27/06/2026, 08:00:00" required>
+                <input type="text" id="editSalidaTxt" class="form-control" required>
             </div>
 
             <div class="form-group">
@@ -309,8 +309,6 @@
             }
         }
 
-        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
-
         function updateUI() {
             const btn = document.getElementById('mainActionButton');
             if(shiftActivo) {
@@ -355,7 +353,7 @@
                             <div>
                                 <h4 style="font-size:0.95rem;">${t.horas} hrs ($${t.sueldo})</h4>
                                 <p style="font-size:0.8rem; color:var(--text-light); margin-top:2px;"><b>Paciente:</b> ${pac ? pac.nombre : 'Desconocido'}</p>
-                                <p style="font-size:0.75rem; color:var(--text-light);">${t.entradaTxt} a ${t.salidaTxt ? t.salidaTxt.split(' ')[1] : '--:--'}</p>
+                                <p style="font-size:0.75rem; color:var(--text-light);">${t.entradaTxt}<sup> a ${t.salidaTxt ? t.salidaTxt.split(', ')[1] : '--:--'}</sup></p>
                                 ${t.reporte ? `<p style="font-size:0.8rem; color:var(--text); margin-top:6px; font-style:italic; border-left:2px solid var(--primary); padding-left:6px;">${t.reporte}</p>` : ''}
                             </div>
                             <span class="turn-badge ${t.estatus==='Pendiente'?'badge-pending':'badge-paid'}" onclick="event.stopPropagation(); toggleEstatus('${t.id_db}', '${t.estatus}')" style="cursor:pointer;">${t.estatus}</span>
@@ -366,4 +364,9 @@
             if(document.getElementById('pendingDays')) document.getElementById('pendingDays').innerText = pDays;
             if(document.getElementById('pendingSalary')) document.getElementById('pendingSalary').innerText = `$${pSal.toFixed(2)}`;
             if(document.getElementById('totalHours')) document.getElementById('totalHours').innerText = `${tHrs.toFixed(1)} hrs`;
-       
+        }
+
+        function renderPacientes() {
+            const list = document.getElementById('pacientesList');
+            if(!list) return;
+            l
