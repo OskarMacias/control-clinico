@@ -38,12 +38,13 @@
         .fab-check-out { background: var(--danger); }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: flex-end; z-index: 200; }
-        .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; padding: 20px; }
+        .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 90vh; overflow-y: auto; }
         .form-group { margin-bottom: 14px; }
         .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text-light); }
         .form-control { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; outline: none; }
         .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 8px; }
         .btn-save { background: var(--success); color: white; }
+        .btn-danger-action { background: var(--danger); color: white; margin-top: 12px; border: 1px solid #b91c1c; }
         .btn-cancel { background: #e2e8f0; color: var(--text); margin-top: 4px; }
     </style>
 </head>
@@ -103,24 +104,37 @@
         <div class="modal-content">
             <h2>Finalizar Turno</h2>
             <div class="form-group" style="margin-top:12px;">
-                <label>Reporte Clínico</label>
-                <textarea id="formReporte" class="form-control" rows="3" placeholder="Observaciones del turno..." required></textarea>
+                <label>Notas / Reporte Clínico de Evolución</label>
+                <textarea id="formReporte" class="form-control" rows="4" placeholder="Escribe aquí las observaciones sobre el estado físico del paciente..." required></textarea>
             </div>
             <button class="btn-submit btn-save" onclick="confirmSalida()">Finalizar Guardia</button>
             <button class="btn-submit btn-cancel" onclick="closeModales()">Cancelar</button>
         </div>
     </div>
 
-    <!-- MODAL MODIFICAR TRABAJO (ADMIN) -->
+    <!-- MODAL EDICIÓN Y ELIMINACIÓN COMPLETA (ADMIN) -->
     <div id="adminEditModal" class="modal">
         <div class="modal-content">
-            <h2>Corregir Turno (Admin)</h2>
+            <h2>Panel de Control (Admin)</h2>
             <input type="hidden" id="editTurnoId">
+            
             <div class="form-group" style="margin-top: 12px;">
-                <label>Horas Totales del Turno</label>
+                <label>Fecha y Hora de Entrada</label>
+                <input type="text" id="editEntradaTxt" class="form-control" placeholder="Ej: 26/06/2026, 14:26:00" required>
+            </div>
+
+            <div class="form-group">
+                <label>Fecha y Hora de Salida</label>
+                <input type="text" id="editSalidaTxt" class="form-control" placeholder="Ej: 27/06/2026, 08:00:00" required>
+            </div>
+
+            <div class="form-group">
+                <label>Horas Totales Calculadas</label>
                 <input type="number" step="0.1" id="editHorasInput" class="form-control" required>
             </div>
-            <button class="btn-submit btn-save" onclick="saveAdminCorrection()">Guardar Corrección</button>
+
+            <button class="btn-submit btn-save" onclick="saveAdminCorrection()">💾 Guardar Cambios</button>
+            <button class="btn-submit btn-danger-action" onclick="deleteAdminTurno()">🗑️ Eliminar Turno Permanente</button>
             <button class="btn-submit btn-cancel" onclick="closeModales()">Cancelar</button>
         </div>
     </div>
@@ -193,7 +207,7 @@
 
         function confirmSalida() {
             const reporte = document.getElementById('formReporte').value;
-            if(!reporte) return alert("Escribe el reporte clínico.");
+            if(!reporte) return alert("Por favor, escribe el reporte o notas antes de finalizar.");
             
             const ahora = new Date();
             const entradaDate = new Date(shiftActivo.entrada);
@@ -219,7 +233,7 @@
             db.collection("turnos").doc(id_db).update({ estatus: nuevo });
         }
 
-        // --- DETECTOR DE TOQUE LARGO (ADMIN) ---
+        // --- MÓDULO ADMINISTRADOR AVANZADO ---
         let pressTimer;
         function startPress(id_db) {
             pressTimer = window.setTimeout(function() {
@@ -228,6 +242,8 @@
                     const t = turnos.find(x => x.id_db === id_db);
                     if(t) {
                         document.getElementById('editTurnoId').value = t.id_db;
+                        document.getElementById('editEntradaTxt').value = t.entradaTxt;
+                        document.getElementById('editSalidaTxt').value = t.salidaTxt || "";
                         document.getElementById('editHorasInput').value = t.horas;
                         document.getElementById('adminEditModal').style.display = 'flex';
                     }
@@ -241,16 +257,30 @@
 
         function saveAdminCorrection() {
             const id_db = document.getElementById('editTurnoId').value;
+            const nuevaEntrada = document.getElementById('editEntradaTxt').value;
+            const nuevaSalida = document.getElementById('editSalidaTxt').value;
             const hNuevas = parseFloat(document.getElementById('editHorasInput').value) || 0;
             const sNuevo = (hNuevas * 100).toFixed(2);
 
             db.collection("turnos").doc(id_db).update({
+                entradaTxt: nuevaEntrada,
+                salidaTxt: nuevaSalida,
                 horas: hNuevas.toFixed(1),
                 sueldo: sNuevo
             }).then(() => {
                 closeModales();
-                alert("✓ Turno corregido con éxito.");
+                alert("✓ Turno actualizado con éxito.");
             });
+        }
+
+        function deleteAdminTurno() {
+            const id_db = document.getElementById('editTurnoId').value;
+            if(confirm("⚠️ ¿Estás completamente seguro de eliminar este turno? Esta acción no se puede deshacer.")) {
+                db.collection("turnos").doc(id_db).delete().then(() => {
+                    closeModales();
+                    alert("🗑️ Turno eliminado permanentemente de la base de datos.");
+                });
+            }
         }
 
         function closeModales() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
@@ -285,7 +315,8 @@
                             <div>
                                 <h4 style="font-size:0.95rem;">${t.horas} hrs ($${t.sueldo})</h4>
                                 <p style="font-size:0.8rem; color:var(--text-light); margin-top:2px;"><b>Paciente:</b> ${pac ? pac.nombre : 'Desconocido'}</p>
-                                <p style="font-size:0.75rem; color:var(--text-light);">${t.entradaTxt}</p>
+                                <p style="font-size:0.75rem; color:var(--text-light);">${t.entradaTxt} a ${t.salidaTxt ? t.salidaTxt.split(' ')[1] : '--:--'}</p>
+                                ${t.reporte ? `<p style="font-size:0.8rem; color:var(--text); margin-top:6px; font-style:italic; border-left:2px solid var(--primary); padding-left:6px;">${t.reporte}</p>` : ''}
                             </div>
                             <span class="turn-badge ${t.estatus==='Pendiente'?'badge-pending':'badge-paid'}" onclick="event.stopPropagation(); toggleEstatus('${t.id_db}', '${t.estatus}')" style="cursor:pointer;">${t.estatus}</span>
                         </div>
