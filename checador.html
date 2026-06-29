@@ -3,128 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control Clínico Permanente - Damaris Vega</title>
+    <title>Control Clínico - Damaris Vega</title>
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
     <style>
-        :root {
-            --primary: #0d9488;
-            --primary-dark: #115e59;
-            --primary-light: #ccfbf1;
-            --background: #f8fafc;
-            --surface: #ffffff;
-            --text: #1e293b;
-            --text-light: #64748b;
-            --success: #16a34a;
-            --warning: #ca8a04;
-            --danger: #dc2626;
-            --border: #e2e8f0;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-        body { background-color: var(--background); color: var(--text); display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
-        .phone-container { width: 100%; max-width: 480px; background: var(--surface); height: 100%; display: flex; flex-direction: column; position: relative; }
-        header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 16px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+        :root { --primary: #0d9488; --primary-dark: #115e59; --background: #f8fafc; --surface: #ffffff; --text: #1e293b; --text-light: #64748b; --success: #16a34a; --danger: #dc2626; --border: #e2e8f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--background); color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
+        .phone-container { width: 100%; max-width: 480px; background: var(--surface); display: flex; flex-direction: column; min-height: 100vh; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 20px 16px; }
         .profile { display: flex; align-items: center; gap: 12px; }
-        .avatar { background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .welcome-text h1 { font-size: 1.25rem; font-weight: 700; }
-        
-        .sync-badge { background: rgba(255, 255, 255, 0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; gap: 4px; }
-
-        .tabs { display: flex; background: var(--primary-dark); flex-shrink: 0; }
-        .tab-btn { flex: 1; color: white; background: none; border: none; padding: 12px; font-weight: 600; font-size: 0.9rem; cursor: pointer; opacity: 0.6; text-align: center; }
+        .avatar { background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 50%; display: flex; }
+        .welcome-text h1 { font-size: 1.2rem; font-weight: 700; }
+        .tabs { display: flex; background: var(--primary-dark); }
+        .tab-btn { flex: 1; color: white; background: none; border: none; padding: 14px; font-weight: 600; font-size: 0.9rem; cursor: pointer; opacity: 0.6; text-align: center; }
         .tab-btn.active { opacity: 1; border-bottom: 3px solid white; }
-
-        main { flex: 1; padding: 16px; overflow-y: auto; background-color: var(--background); -webkit-overflow-scrolling: touch; }
-        .tab-content { display: none; padding-bottom: 80px; }
+        main { flex: 1; padding: 16px; padding-bottom: 100px; }
+        .tab-content { display: none; }
         .tab-content.active { display: block; }
-
-        .active-shift-banner { display: none; background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 10px; border-radius: 12px; margin-bottom: 6px; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 500; }
-        
-        .live-vitals-box { display: none; background: #f0fdfa; border: 1px solid #99f6e4; padding: 14px; border-radius: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgb(13 148 136 / 0.05); }
-        .live-vitals-title { font-size: 0.85rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-        .stat-card { background: var(--surface); padding: 12px; border-radius: 14px; box-shadow: 0 2px 4px rgb(0 0 0 / 0.05); border: 1px solid var(--border); }
-        .stat-card.alert { border-left: 4px solid var(--warning); }
-        .stat-card.success { border-left: 4px solid var(--success); }
-        .stat-label { font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 600; }
-        .stat-value { font-size: 1.2rem; font-weight: 700; }
-
-        .filter-container { display: flex; gap: 6px; margin-bottom: 14px; }
-        .filter-btn { flex: 1; background: #e2e8f0; border: none; padding: 8px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--text-light); cursor: pointer; text-align: center; }
-        .filter-btn.active { background: var(--primary); color: white; }
-
-        .section-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .card-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgb(0 0 0 / 0.03); }
-        .card-header-flex { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-        .card-action-area { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-        
-        .turn-badge { font-size: 0.65rem; padding: 4px 8px; border-radius: 20px; font-weight: 700; text-transform: uppercase; }
-        .badge-pending { background-color: #fef9c3; color: #713f12; border: 1px solid #fef08a; }
-        .badge-paid { background-color: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; }
-
-        .btn-toggle-pay { background: #f1f5f9; border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 4px; }
-        .btn-delete-turn { background: #fee2e2; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; color: var(--danger); cursor: pointer; display: flex; align-items: center; gap: 4px; }
-
-        .patient-title-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .patient-name { font-size: 1.15rem; color: var(--primary-dark); font-weight: 700; display: flex; align-items: center; gap: 6px; }
-        .patient-meta-row { font-size: 0.85rem; color: var(--text-light); margin-bottom: 10px; }
-        .base-diagnosis-box { background-color: #f1f5f9; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; color: var(--text); margin-bottom: 12px; }
-
-        .vitals-reference-box { background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 10px; }
-        .vitals-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 10px; }
-        .vitals-row.last-row { margin-bottom: 0; padding-top: 10px; border-top: 1px dashed var(--border); }
-        .vital-cell { display: flex; flex-direction: column; gap: 2px; }
-        .vital-cell .label { font-size: 0.75rem; color: var(--text-light); }
-        .vital-cell .value { font-size: 0.9rem; font-weight: 700; color: var(--primary-dark); }
-
-        .timeline-entry { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-top: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); }
-        .entry-header { font-weight: 700; font-size: 0.8rem; color: var(--primary-dark); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-
-        .img-container-flex { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-        .img-thumbnail-container { width: 85px; height: 85px; border-radius: 10px; overflow: hidden; border: 2px solid var(--primary-light); cursor: zoom-in; position: relative; }
-        .img-thumbnail-container img { width: 100%; height: 100%; object-fit: cover; }
-        .img-label-tag { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.6); color: white; font-size: 0.55rem; text-align: center; padding: 2px 0; font-weight: bold; text-transform: uppercase; }
-
-        .health-alert-box { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px; border-radius: 6px; margin-top: 8px; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-
-        .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 600; flex-direction: column; justify-content: center; align-items: center; }
-        .lightbox img { max-width: 95%; max-height: 80%; object-fit: contain; border-radius: 8px; }
-        .lightbox-actions { margin-top: 15px; display: flex; gap: 15px; }
-        .btn-lightbox { padding: 10px 20px; border-radius: 30px; border: none; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        .btn-download { background: var(--primary); color: white; text-decoration: none; }
-        .btn-close-lb { background: #334155; color: white; }
-
-        .bottom-bar { position: absolute; bottom: 0; left: 0; width: 100%; padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--border); z-index: 90; }
-        .fab-action { width: 100%; color: white; border: none; padding: 14px; border-radius: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1rem; font-weight: 700; }
-        .fab-check-in { background: var(--primary); box-shadow: 0 4px 10px rgb(13 148 136 / 0.2); }
-        .fab-check-out { background: var(--danger); box-shadow: 0 4px 10px rgb(220 38 38 / 0.2); }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: flex-end; z-index: 100; }
-        .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 20px; max-height: 85vh; overflow-y: auto; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-light); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .stat-label { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 600; }
+        .stat-value { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+        .section-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+        .card-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+        .card-header-flex { display: flex; justify-content: space-between; align-items: flex-start; }
+        .turn-badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 20px; font-weight: 700; text-transform: uppercase; }
+        .badge-pending { background: #fef9c3; color: #713f12; }
+        .badge-paid { background: #dcfce7; color: #14532d; }
+        .bottom-bar { position: fixed; bottom: 0; width: 100%; max-width: 480px; padding: 16px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+        .fab-action { width: 100%; color: white; border: none; padding: 14px; border-radius: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1rem; font-weight: 700; }
+        .fab-check-in { background: var(--primary); }
+        .fab-check-out { background: var(--danger); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: flex-end; z-index: 200; }
+        .modal-content { background: var(--surface); width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; padding: 20px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text-light); }
         .form-control { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; outline: none; }
-        
-        .grid-3-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .photo-options { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 4px; }
-        .btn-photo-mode { background: #f1f5f9; border: 2px dashed var(--primary); padding: 14px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: var(--primary-dark); }
-        .btn-photo-mode.ready { background: var(--primary-light); border-style: solid; color: var(--primary-dark); }
-
-        .input-with-action { display: flex; gap: 8px; align-items: center; }
-        .action-inline-btn { background: var(--primary-light); color: var(--primary-dark); border: 1px solid var(--primary); padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .action-inline-btn.listening { background: var(--danger); color: white; border-color: var(--danger); animation: pulseBg 1.5s infinite; }
-        .btn-edit-inline { background: none; border: none; color: var(--text-light); font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-
-        @keyframes pulseBg { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
         .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 8px; }
         .btn-save { background: var(--success); color: white; }
         .btn-cancel { background: #e2e8f0; color: var(--text); margin-top: 4px; }
-        .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -132,63 +51,28 @@
     <div class="phone-container">
         <header>
             <div class="profile">
-                <div class="avatar"><i data-lucide="heart-pulse" style="width:24px; height:24px;"></i></div>
+                <div class="avatar"><i data-lucide="heart-pulse"></i></div>
                 <div class="welcome-text"><h1>Damaris Vega</h1></div>
             </div>
-            <div class="sync-badge"><i data-lucide="cloud" style="width:12px; height:12px;"></i> Nube Activa</div>
         </header>
 
         <div class="tabs">
-            <button id="tab1" class="tab-btn active" onclick="switchTab('turnosTab', this)">🕒 Checador y Pagos</button>
-            <button id="tab2" class="tab-btn" onclick="switchTab('pacientesTab', this)">📋 Historial Clínico</button>
+            <button class="tab-btn active" onclick="switchTab('turnosTab', this)">🕒 Checador</button>
+            <button class="tab-btn" onclick="switchTab('pacientesTab', this)">📋 Historial</button>
         </div>
 
         <main>
             <div id="turnosTab" class="tab-content active">
-                <div id="activeShiftBanner" class="active-shift-banner">
-                    <i data-lucide="activity"></i>
-                    <span>Atendiendo a: <b id="activePatientName">--</b> desde las <b id="activeStartTime">--</b></span>
-                </div>
-
                 <div class="stats-grid">
-                    <div class="stat-card alert"><span class="stat-label">Días Pendientes</span><span id="pendingDays" class="stat-value">0</span></div>
-                    <div class="stat-card success"><span class="stat-label">Sueldo Pendiente</span><span id="pendingSalary" class="stat-value">$0.00</span></div>
+                    <div class="stat-card"><span class="stat-label">Días Pendientes</span><span id="pendingDays" class="stat-value">0</span></div>
+                    <div class="stat-card"><span class="stat-label">Sueldo Pendiente</span><span id="pendingSalary" class="stat-value">$0.00</span></div>
                 </div>
-
-                <div id="liveVitalsContainer" class="live-vitals-box">
-                    <div class="live-vitals-title">
-                        <i data-lucide="heart-pulse" style="color:var(--primary);"></i>
-                        <span>Seguimiento de Signos Vitales (Durante el Día)</span>
-                    </div>
-                    <div class="grid-3-col" style="margin-bottom: 8px;">
-                        <div class="form-group"><label style="font-size:0.7rem;">P. Arterial</label><input type="text" id="livePresion" class="form-control" placeholder="120/80" style="padding:6px; font-size:0.85rem;"></div>
-                        <div class="form-group"><label style="font-size:0.7rem;">Temp (°C)</label><input type="number" step="0.1" id="liveTemp" class="form-control" placeholder="36.5" style="padding:6px; font-size:0.85rem;"></div>
-                        <div class="form-group"><label style="font-size:0.7rem;">R. Cardíaco</label><input type="number" id="liveFrec" class="form-control" placeholder="72" style="padding:6px; font-size:0.85rem;"></div>
-                    </div>
-                    <div class="grid-3-col" style="margin-bottom: 10px;">
-                        <div class="form-group"><label style="font-size:0.7rem;">Sat. O2 (%)</label><input type="number" id="liveSat" class="form-control" placeholder="98" style="padding:6px; font-size:0.85rem;"></div>
-                        <div class="form-group"><label style="font-size:0.7rem;">Glucosa</label><input type="number" id="liveGlucosa" class="form-control" placeholder="95" style="padding:6px; font-size:0.85rem;"></div>
-                        <div class="form-group"><label style="font-size:0.7rem;">Peso (kg)</label><input type="number" id="livePeso" class="form-control" placeholder="70" style="padding:6px; font-size:0.85rem;"></div>
-                    </div>
-                    <button type="button" class="btn-submit btn-save" onclick="guardarSignosLive()" style="padding:8px; font-size:0.85rem; margin:0;">💾 Actualizar Signos</button>
-                </div>
-
-                <div class="section-title"><span>Control de Días Trabajados</span><span id="totalHours" style="font-size:0.8rem; font-weight:normal; color:var(--text-light);">0 hrs</span></div>
-                
-                <div class="filter-container">
-                    <button id="filterAllBtn" class="filter-btn active" onclick="setFiltro('todos')">Todos los Días</button>
-                    <button id="filterPendingBtn" class="filter-btn" onclick="setFiltro('pendientes')">Días Pendientes</button>
-                    <button id="filterPaidBtn" class="filter-btn" onclick="setFiltro('pagados')">Días Pagados</button>
-                </div>
-
+                <div class="section-title">Historial de Turnos</div>
                 <div id="historyList"></div>
             </div>
 
             <div id="pacientesTab" class="tab-content">
-                <div class="section-title">
-                    <span>Expedientes Clínicos</span>
-                    <button onclick="openPacienteModal()" style="background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer;">+ Nuevo Paciente</button>
-                </div>
+                <div class="section-title">Expedientes</div>
                 <div id="pacientesList"></div>
             </div>
         </main>
@@ -200,62 +84,179 @@
         </div>
     </div>
 
-    <div id="imageLightbox" class="lightbox">
-        <img id="lightboxImg" src="" alt="Bitácora Ampliada">
-        <div class="lightbox-actions">
-            <a id="lightboxDownloadBtn" href="#" download="evidencia_clinica.jpg" class="btn-lightbox btn-download">
-                <i data-lucide="download"></i> Descargar Alta Calidad
-            </a>
-            <button class="btn-lightbox btn-close-lb" onclick="closeLightbox()">
-                <i data-lucide="x"></i> Cerrar
-            </button>
-        </div>
-    </div>
-
     <div id="entradaModal" class="modal">
         <div class="modal-content">
-            <h2>Iniciar Guardia</h2>
-            <div class="form-group" style="margin-top:10px;">
+            <h2>Iniciar Turno</h2>
+            <div class="form-group" style="margin-top:12px;">
                 <label>Selecciona Paciente</label>
                 <select id="entradaPacienteSelect" class="form-control"></select>
             </div>
-            
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label>Fotografía de Ingreso (Obligatoria)</label>
-                <div class="photo-options">
-                    <button type="button" id="btnEntradaCamera" class="btn-photo-mode" onclick="triggerPhotoCaptureIn('entrada')">
-                        <i data-lucide="camera"></i> Tomar Foto de Entrada
-                    </button>
-                </div>
-                <input type="file" id="fileCameraEntrada" accept="image/*" capture="camera" style="display:none;">
-                <input type="hidden" id="formFotoEntradaBase64">
-                <div id="photoStatusEntrada" style="font-size:0.75rem; color:var(--warning); margin-top:6px; font-weight:600;">⚠ Es necesario tomarse la foto para ingresar</div>
-            </div>
-
-            <button type="button" id="btnConfirmarEntradaSubmit" class="btn-submit btn-save" onclick="confirmEntrada()" style="opacity:0.5;" disabled>Confirmar Entrada</button>
-            <button type="button" class="btn-submit btn-cancel" onclick="closeAllModales()">Cancelar</button>
+            <button class="btn-submit btn-save" onclick="confirmEntrada()">Confirmar Entrada</button>
+            <button class="btn-submit btn-cancel" onclick="closeModales()">Cancelar</button>
         </div>
     </div>
 
     <div id="salidaModal" class="modal">
         <div class="modal-content">
-            <h2>Cerrar Turno</h2>
-            <form onsubmit="confirmSalida(event)">
-                <div class="form-group">
-                    <label>Pago por Hora ($ MXN)</label>
-                    <input type="number" id="formPagoHora" class="form-control" value="100" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Reporte Clínico de Evolución</label>
-                    <div class="input-with-action">
-                        <textarea id="formReporte" class="form-control" rows="4" placeholder="Dicta u observaciones sobre el estado físico del paciente..." required></textarea>
-                        <button type="button" class="action-inline-btn" onclick="toggleDictado('formReporte', this)"><i data-lucide="mic"></i></button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Fotografía de Bitácora (Opcional)</label>
-                    <div class="photo-options">
-                        <button type="button" id="btnSalidaCamera" class="btn-photo-mode" onclick="triggerPhotoCaptureIn('salida')"><i data-lucide="camera"></i> Tomar foto de Bitácora</button>
-                    </div>
- 
+            <h2>Finalizar Turno</h2>
+            <div class="form-group" style="margin-top:12px;">
+                <label>Reporte Clínico</label>
+                <textarea id="formReporte" class="form-control" rows="3" placeholder="Observaciones del turno..." required></textarea>
+            </div>
+            <button class="btn-submit btn-save" onclick="confirmSalida()">Finalizar Guardia</button>
+            <button class="btn-submit btn-cancel" onclick="closeModales()">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1UyDilfdt40ClMjRZo0YV_JpS_O9hZ2M",
+            authDomain: "control-clinico-damaris.firebaseapp.com",
+            projectId: "control-clinico-damaris",
+            storageBucket: "control-clinico-damaris.appspot.com",
+            messagingSenderId: "888712869896",
+            appId: "1:888712869896:web:11c9aa3da17ca9cb0f08mb"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let pacientes = [];
+        let turnos = [];
+        let shiftActivo = null;
+
+        db.collection("pacientes").onSnapshot(snapshot => {
+            pacientes = [];
+            snapshot.forEach(doc => pacientes.push({ id_db: doc.id, ...doc.data() }));
+            renderPacientes();
+        });
+
+        db.collection("turnos").onSnapshot(snapshot => {
+            turnos = [];
+            snapshot.forEach(doc => turnos.push({ id_db: doc.id, ...doc.data() }));
+            renderTurnos();
+        });
+
+        db.collection("guardia_activa").doc("estado").onSnapshot(doc => {
+            shiftActivo = doc.exists && doc.data().activo ? doc.data() : null;
+            updateUI();
+        });
+
+        function switchTab(id, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function handleShiftAction() {
+            if (!shiftActivo) {
+                const select = document.getElementById('entradaPacienteSelect');
+                select.innerHTML = '';
+                pacientes.forEach(p => select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
+                document.getElementById('entradaModal').style.display = 'flex';
+            } else {
+                document.getElementById('formReporte').value = '';
+                document.getElementById('salidaModal').style.display = 'flex';
+            }
+        }
+
+        function confirmEntrada() {
+            const pacId = document.getElementById('entradaPacienteSelect').value;
+            const p = pacientes.find(x => x.id == pacId);
+            db.collection("guardia_activa").doc("estado").set({
+                activo: true,
+                entrada: new Date().toISOString(),
+                pacienteId: pacId,
+                patientNombre: p.nombre
+            });
+            closeModales();
+        }
+
+        function confirmSalida() {
+            const reporte = document.getElementById('formReporte').value;
+            if(!reporte) return alert("Escribe el reporte clínico.");
+            
+            const ahora = new Date();
+            const entradaDate = new Date(shiftActivo.entrada);
+            const hrs = Math.max(0.1, (ahora - entradaDate) / (1000 * 60 * 60));
+            const sueldoTurno = hrs * 100;
+
+            db.collection("turnos").add({
+                pacienteId: shiftActivo.pacienteId,
+                entradaTxt: entradaDate.toLocaleString(),
+                salidaTxt: ahora.toLocaleString(),
+                horas: hrs.toFixed(1),
+                sueldo: sueldoTurno.toFixed(2),
+                estatus: 'Pendiente',
+                reporte: reporte
+            });
+
+            db.collection("guardia_activa").doc("estado").set({ activo: false });
+            closeModales();
+        }
+
+        function toggleEstatus(id_db, estatus) {
+            const nuevo = estatus === 'Pendiente' ? 'Pagado' : 'Pendiente';
+            db.collection("turnos").doc(id_db).update({ estatus: nuevo });
+        }
+
+        function closeModales() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+
+        function updateUI() {
+            const btn = document.getElementById('mainActionButton');
+            if(shiftActivo) {
+                btn.className = 'fab-action fab-check-out';
+                document.getElementById('mainActionText').innerText = 'Checar Salida';
+                document.getElementById('mainActionIcon').setAttribute('data-lucide', 'square');
+            } else {
+                btn.className = 'fab-action fab-check-in';
+                document.getElementById('mainActionText').innerText = 'Checar Entrada';
+                document.getElementById('mainActionIcon').setAttribute('data-lucide', 'play');
+            }
+            lucide.createIcons();
+        }
+
+        function renderTurnos() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            let pDays = 0, pSal = 0;
+
+            turnos.sort((a,b) => b.entradaTxt.localeCompare(a.entradaTxt)).forEach(t => {
+                if(t.estatus === 'Pendiente') { pDays++; pSal += parseFloat(t.sueldo); }
+                const pac = pacientes.find(p => p.id == t.pacienteId);
+
+                list.innerHTML += `
+                    <div class="card-item">
+                        <div class="card-header-flex">
+                            <div>
+                                <h4 style="font-size:0.95rem;">${t.horas} hrs ($${t.sueldo})</h4>
+                                <p style="font-size:0.8rem; color:var(--text-light); margin-top:2px;"><b>Paciente:</b> ${pac ? pac.nombre : 'Desconocido'}</p>
+                                <p style="font-size:0.75rem; color:var(--text-light);">${t.entradaTxt}</p>
+                            </div>
+                            <span class="turn-badge ${t.estatus==='Pendiente'?'badge-pending':'badge-paid'}" onclick="toggleEstatus('${t.id_db}', '${t.estatus}')" style="cursor:pointer;">${t.estatus}</span>
+                        </div>
+                    </div>`;
+            });
+
+            document.getElementById('pendingDays').innerText = pDays;
+            document.getElementById('pendingSalary').innerText = `$${pSal.toFixed(2)}`;
+        }
+
+        function renderPacientes() {
+            const list = document.getElementById('pacientesList');
+            list.innerHTML = '';
+            pacientes.forEach(p => {
+                list.innerHTML += `
+                    <div class="card-item">
+                        <h3 style="color:var(--primary-dark); font-size:1.1rem;">${p.nombre}</h3>
+                        <p style="font-size:0.85rem; color:var(--text-light); margin-top:4px;"><b>Ubicación:</b> ${p.info}</p>
+                        <p style="font-size:0.85rem; margin-top:6px; background:#f1f5f9; padding:8px; border-radius:6px;"><b>Diagnóstico:</b> ${p.notas}</p>
+                    </div>`;
+            });
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
