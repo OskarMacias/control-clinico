@@ -44,6 +44,7 @@
         .form-control { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; outline: none; }
         .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 8px; }
         .btn-save { background: var(--success); color: white; }
+        .btn-delete { background: var(--danger); color: white; margin-top: 12px; }
         .btn-cancel { background: #e2e8f0; color: var(--text); margin-top: 4px; }
     </style>
 </head>
@@ -111,7 +112,7 @@
         </div>
     </div>
 
-    <!-- MODAL MODIFICAR TRABAJO (ADMIN SECO) -->
+    <!-- MODAL MODIFICAR TRABAJO (ADMIN) -->
     <div id="adminEditModal" class="modal">
         <div class="modal-content">
             <h2>Corregir Turno (Admin)</h2>
@@ -120,7 +121,8 @@
                 <label>Horas Totales del Turno</label>
                 <input type="number" step="0.1" id="editHorasInput" class="form-control" required>
             </div>
-            <button class="btn-submit btn-save" onclick="saveAdminCorrection()">Guardar Corrección</button>
+            <button class="btn-submit btn-save" onclick="saveAdminCorrection()">💾 Guardar Corrección</button>
+            <button class="btn-submit btn-delete" onclick="deleteAdminTurno()">🗑️ Eliminar Registro Permanente</button>
             <button class="btn-submit btn-cancel" onclick="closeModales()">Cancelar</button>
         </div>
     </div>
@@ -250,6 +252,16 @@
                 closeModales();
                 alert("✓ Turno corregido con éxito.");
             });
+        }
+
+        function deleteAdminTurno() {
+            const id_db = document.getElementById('editTurnoId').value;
+            if(confirm("⚠️ ¿Estás completamente seguro de eliminar este registro? Esta acción borrará el turno de forma permanente.")) {
+                db.collection("turnos").doc(id_db).delete().then(() => {
+                    closeModales();
+                    alert("🗑️ Registro eliminado correctamente.");
+                });
+            }
         }
 
         function closeModales() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
